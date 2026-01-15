@@ -16,9 +16,9 @@ const tokens = {
   border: '#E5E5EA',
   warning: '#A1887F',
 
-  // Soft calendar colors (inspired by Stoic)
-  calendarSelected: '#7BA3C9',     // Muted blue for selected dates
-  calendarRange: '#D4E4F1',        // Very light blue for range
+  // Monochromatic calendar colors
+  calendarSelected: '#8E8E93',     // Medium gray for selected dates
+  calendarRange: '#E5E5EA',        // Light gray for range
   calendarEmpty: '#E8E8EC',        // Faint outline for empty dots
   calendarText: '#B8B8BC',         // Soft gray for date numbers
 
@@ -43,10 +43,10 @@ const leaveTypes = [
 ];
 
 // ============ SQUARE PROGRESS RING COMPONENT ============
-function SquareProgressRing({ value, total, size = 44 }) {
+function SquareProgressRing({ value, total, size = 32 }) {
   const percentage = total > 0 ? (value / total) * 100 : 0;
-  const strokeWidth = 2;
-  const r = 8; // Corner radius
+  const strokeWidth = 1.5;
+  const r = 6; // Corner radius
   const offset = strokeWidth / 2;
   const s = size - strokeWidth; // Inner size
 
@@ -98,7 +98,7 @@ function SquareProgressRing({ value, total, size = 44 }) {
       <div
         className="absolute inset-0 flex items-center justify-center"
         style={{
-          fontSize: '14px',
+          fontSize: '11px',
           fontWeight: 500,
           color: tokens.valueText,
         }}
