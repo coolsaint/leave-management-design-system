@@ -42,6 +42,73 @@ const leaveTypes = [
   { id: 'marriage', label: 'Marriage Leave', icon: Heart, maxDays: 5, available: 5, note: 'Once in employment', allowPastDates: false },
 ];
 
+// ============ SQUARE PROGRESS RING COMPONENT ============
+function SquareProgressRing({ value, total, size = 44 }) {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  const strokeWidth = 2;
+  const r = 8; // Corner radius
+  const offset = strokeWidth / 2;
+  const s = size - strokeWidth; // Inner size
+
+  // Path starts from top-center, goes clockwise
+  // M = move to top-center, then draw right side, bottom, left, top back to start
+  const path = `
+    M ${size / 2} ${offset}
+    H ${offset + s - r}
+    A ${r} ${r} 0 0 1 ${offset + s} ${offset + r}
+    V ${offset + s - r}
+    A ${r} ${r} 0 0 1 ${offset + s - r} ${offset + s}
+    H ${offset + r}
+    A ${r} ${r} 0 0 1 ${offset} ${offset + s - r}
+    V ${offset + r}
+    A ${r} ${r} 0 0 1 ${offset + r} ${offset}
+    H ${size / 2}
+  `;
+
+  // Calculate perimeter: 4 sides + 4 quarter-circle corners
+  const straightLength = 4 * (s - 2 * r);
+  const cornerLength = 2 * Math.PI * r;
+  const perimeter = straightLength + cornerLength;
+
+  const dashOffset = perimeter * (1 - percentage / 100);
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        {/* Background track */}
+        <path
+          d={path}
+          fill="none"
+          stroke={tokens.calendarEmpty}
+          strokeWidth={strokeWidth}
+        />
+        {/* Progress stroke */}
+        <path
+          d={path}
+          fill="none"
+          stroke={tokens.textSecondary}
+          strokeWidth={strokeWidth}
+          strokeDasharray={perimeter}
+          strokeDashoffset={dashOffset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.3s ease' }}
+        />
+      </svg>
+      {/* Centered number */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          fontSize: '14px',
+          fontWeight: 500,
+          color: tokens.valueText,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
 // ============ DOT/BUBBLE CALENDAR COMPONENT ============
 function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelectedEnd, leaveType }) {
   const [weekOffset, setWeekOffset] = useState(0);
@@ -1598,39 +1665,15 @@ export default function LeaveManagementDashboard() {
                 { label: 'Marriage', used: 0, total: 5 },
               ].map((item, i) => {
                 const remaining = item.total - item.used;
-                const percentage = (remaining / item.total) * 100;
                 return (
-                  <div key={i}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span
-                        className="text-xs"
-                        style={{ color: tokens.textPrimary }}
-                      >
-                        {item.label}
-                      </span>
-                      <span
-                        className="text-xs font-medium"
-                        style={{ color: tokens.valueText }}
-                      >
-                        {remaining}
-                      </span>
-                    </div>
-                    {/* Progress Bar - Thin & Delicate */}
-                    <div
-                      className="w-full rounded-full overflow-hidden"
-                      style={{
-                        height: '1px',
-                        backgroundColor: '#E5E5EA',
-                      }}
+                  <div key={i} className="flex items-center justify-between">
+                    <span
+                      className="text-xs"
+                      style={{ color: tokens.textPrimary }}
                     >
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${percentage}%`,
-                          backgroundColor: '#B8B8BC',
-                        }}
-                      />
-                    </div>
+                      {item.label}
+                    </span>
+                    <SquareProgressRing value={remaining} total={item.total} />
                   </div>
                 );
               })}
