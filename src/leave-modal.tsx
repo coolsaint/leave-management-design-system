@@ -139,10 +139,10 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
     const disabled = isDisabled(date);
     const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
 
-    // Team Availability inspired styling
+    // Team Availability inspired styling - 1.5px borders for delicate look
     let bgColor = 'transparent';
     let textColor = tokens.textSecondary;
-    let border = `2px solid ${tokens.textMuted}`;  // Outlined style like "Available" indicator
+    let border = `1px solid ${tokens.textMuted}`;  // Delicate outline
     let scale = 1;
 
     if (selected) {
@@ -160,15 +160,15 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
       // Today: accent outlined
       bgColor = 'transparent';
       textColor = tokens.calendarSelected;
-      border = `2px solid ${tokens.calendarSelected}`;
+      border = `1px solid ${tokens.calendarSelected}`;
     } else if (disabled) {
       // Disabled: very faint
       textColor = tokens.textMuted;
-      border = `1.5px solid ${tokens.calendarEmpty}`;
+      border = `1px solid ${tokens.calendarEmpty}`;
     } else if (isPastDate && !disabled) {
       // Allowed past dates: slightly emphasized outline
       textColor = tokens.textSecondary;
-      border = `2px solid ${tokens.textSecondary}`;
+      border = `1px solid ${tokens.textSecondary}`;
     }
 
     return (
@@ -291,7 +291,7 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
           <div
             className="w-3.5 h-3.5 rounded-full"
             style={{
-              border: `2px solid ${tokens.calendarSelected}`,
+              border: `1px solid ${tokens.calendarSelected}`,
               backgroundColor: 'transparent',
             }}
           />
@@ -447,9 +447,10 @@ function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelect
               const isPastDate = date < today;
 
               // Team Availability style: outlined = available, filled = selected
+              // Using 1.5px borders for delicate aesthetic
               let bgColor = 'transparent';
               let textColor = tokens.textSecondary;
-              let border = `2px solid ${tokens.textMuted}`;  // Outlined like "Available"
+              let border = `1px solid ${tokens.textMuted}`;  // Delicate outline
               let scale = 1;
 
               if (selected) {
@@ -463,14 +464,14 @@ function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelect
                 border = 'none';
               } else if (isDateToday) {
                 textColor = tokens.calendarSelected;
-                border = `2px solid ${tokens.calendarSelected}`;
+                border = `1px solid ${tokens.calendarSelected}`;
               } else if (disabled) {
                 textColor = tokens.textMuted;
-                border = `1.5px solid ${tokens.calendarEmpty}`;
+                border = `1px solid ${tokens.calendarEmpty}`;
               } else if (isPastDate && !disabled) {
                 // Allowed past dates - emphasized outline
                 textColor = tokens.textSecondary;
-                border = `2px solid ${tokens.textSecondary}`;
+                border = `1px solid ${tokens.textSecondary}`;
               }
 
               return (
