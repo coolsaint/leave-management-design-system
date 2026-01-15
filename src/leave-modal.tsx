@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import {
   Plus, Star, Share2, User, Check, Search, Bell, Settings, X,
   Calendar, Users, BarChart3, Clock, Briefcase, ChevronLeft, ChevronRight,
   Thermometer, Heart, Baby, Coffee, Flower2
@@ -15,47 +15,47 @@ const tokens = {
   accent: '#3A3A3C',
   border: '#E5E5EA',
   warning: '#A1887F',
-  
+
   // Soft calendar colors (inspired by Stoic)
   calendarSelected: '#7BA3C9',     // Muted blue for selected dates
   calendarRange: '#D4E4F1',        // Very light blue for range
   calendarEmpty: '#E8E8EC',        // Faint outline for empty dots
   calendarText: '#B8B8BC',         // Soft gray for date numbers
-  
+
   // Dashboard values (softer than primary)
   valueText: '#636366',            // Stats, balances - visible but not harsh
-  
+
   cardRadius: '24px',
   buttonRadius: '999px',
   inputRadius: '12px',
-  
+
   bold: 700,
   regular: 400,
 };
 
 // Leave Types Configuration - Shajgoj Limited (Male Employee)
 const leaveTypes = [
-  { id: 'sick', label: 'Sick Leave', icon: Thermometer, maxDays: 14, available: 10, note: 'Doctor cert required for 3+ days' },
-  { id: 'casual', label: 'Casual Leave', icon: Coffee, maxDays: 10, available: 7, note: 'Max 3 days at a time' },
-  { id: 'paternity', label: 'Paternity Leave', icon: Baby, maxDays: 14, available: 14, note: '7 days before + 7 after delivery' },
-  { id: 'bereavement', label: 'Bereavement', icon: Flower2, maxDays: 3, available: 3, note: 'Immediate family/relative' },
-  { id: 'marriage', label: 'Marriage Leave', icon: Heart, maxDays: 5, available: 5, note: 'Once in employment' },
+  { id: 'sick', label: 'Sick Leave', icon: Thermometer, maxDays: 14, available: 10, note: 'Doctor cert required for 3+ days', allowPastDates: true, maxPastDays: 7 },
+  { id: 'casual', label: 'Casual Leave', icon: Coffee, maxDays: 10, available: 7, note: 'Max 3 days at a time', allowPastDates: false },
+  { id: 'paternity', label: 'Paternity Leave', icon: Baby, maxDays: 14, available: 14, note: '7 days before + 7 after delivery', allowPastDates: true, maxPastDays: 90 },
+  { id: 'bereavement', label: 'Bereavement', icon: Flower2, maxDays: 3, available: 3, note: 'Immediate family/relative', allowPastDates: true, maxPastDays: 7 },
+  { id: 'marriage', label: 'Marriage Leave', icon: Heart, maxDays: 5, available: 5, note: 'Once in employment', allowPastDates: false },
 ];
 
 // ============ DOT/BUBBLE CALENDAR COMPONENT ============
-function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelectedEnd }) {
+function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelectedEnd, leaveType }) {
   const [weekOffset, setWeekOffset] = useState(0);
-  
+
   const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-  
+
   // Generate 28 days (4 weeks)
   const generateDays = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + (weekOffset * 7));
-    
+
     const days = [];
     for (let i = 0; i < 28; i++) {
       const date = new Date(startOfWeek);
@@ -64,41 +64,55 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
     }
     return days;
   };
-  
+
   const days = generateDays();
   const week1 = days.slice(0, 7);
   const week2 = days.slice(7, 14);
   const week3 = days.slice(14, 21);
   const week4 = days.slice(21, 28);
-  
+
   const isToday = (date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date.toDateString() === today.toDateString();
   };
-  
-  const isPast = (date) => {
+
+  // Check if date is disabled (past date logic based on leave type)
+  const isDisabled = (date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today;
+
+    // Future dates are always allowed
+    if (date >= today) return false;
+
+    // Check if this leave type allows past dates
+    if (leaveType?.allowPastDates) {
+      const maxPastDays = leaveType.maxPastDays || 7;
+      const minAllowedDate = new Date(today);
+      minAllowedDate.setDate(today.getDate() - maxPastDays);
+      return date < minAllowedDate;
+    }
+
+    // Default: past dates are disabled
+    return true;
   };
-  
+
   const isSelected = (date) => {
     if (!selectedStart) return false;
     if (selectedStart.toDateString() === date.toDateString()) return true;
     if (selectedEnd && selectedEnd.toDateString() === date.toDateString()) return true;
     return false;
   };
-  
+
   const isInRange = (date) => {
     if (!selectedStart || !selectedEnd) return false;
     const start = selectedStart < selectedEnd ? selectedStart : selectedEnd;
     const end = selectedStart < selectedEnd ? selectedEnd : selectedStart;
     return date > start && date < end;
   };
-  
+
   const handleDotClick = (date) => {
-    if (isPast(date)) return;
+    if (isDisabled(date)) return;
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(date);
       setSelectedEnd(null);
@@ -106,7 +120,7 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
       setSelectedEnd(date);
     }
   };
-  
+
   const getMonthLabel = () => {
     const first = days[0];
     const last = days[27];
@@ -116,55 +130,69 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
     return `${monthNames[first.getMonth()]} – ${monthNames[last.getMonth()]} ${last.getFullYear()}`;
   };
 
-  // Dot/Bubble component - Soft colors inspired by Stoic
+  // Dot/Bubble component - Team Availability Style
+  // Outlined circles = available/selectable, Filled = selected/in-range
   const Dot = ({ date }) => {
     const selected = isSelected(date);
     const inRange = isInRange(date);
     const today = isToday(date);
-    const past = isPast(date);
-    
+    const disabled = isDisabled(date);
+    const isPastDate = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+    // Team Availability inspired styling
     let bgColor = 'transparent';
-    let textColor = tokens.calendarText;
-    let border = `1px solid ${tokens.calendarEmpty}`;
-    
+    let textColor = tokens.textSecondary;
+    let border = `2px solid ${tokens.textMuted}`;  // Outlined style like "Available" indicator
+    let scale = 1;
+
     if (selected) {
+      // Filled circle like "On Leave" indicator
       bgColor = tokens.calendarSelected;
       textColor = '#fff';
       border = 'none';
+      scale = 1.05;
     } else if (inRange) {
+      // Softer filled for range
       bgColor = tokens.calendarRange;
       textColor = tokens.textPrimary;
       border = 'none';
-    } else if (today && !past) {
+    } else if (today) {
+      // Today: accent outlined
       bgColor = 'transparent';
       textColor = tokens.calendarSelected;
-      border = `1px solid ${tokens.calendarSelected}`;
-    } else if (past) {
+      border = `2px solid ${tokens.calendarSelected}`;
+    } else if (disabled) {
+      // Disabled: very faint
       textColor = tokens.textMuted;
-      border = `1px solid ${tokens.calendarEmpty}`;
+      border = `1.5px solid ${tokens.calendarEmpty}`;
+    } else if (isPastDate && !disabled) {
+      // Allowed past dates: slightly emphasized outline
+      textColor = tokens.textSecondary;
+      border = `2px solid ${tokens.textSecondary}`;
     }
-    
+
     return (
       <button
         type="button"
         onClick={() => handleDotClick(date)}
-        disabled={past}
-        className="flex items-center justify-center active:scale-90 transition-all"
+        disabled={disabled}
+        className="flex items-center justify-center transition-all duration-150"
         style={{
-          width: '28px',
-          height: '28px',
+          width: '32px',
+          height: '32px',
           borderRadius: '50%',
           backgroundColor: bgColor,
           border: border,
-          cursor: past ? 'default' : 'pointer',
-          opacity: past ? 0.4 : 1,
+          cursor: disabled ? 'default' : 'pointer',
+          opacity: disabled ? 0.35 : 1,
+          transform: `scale(${scale})`,
         }}
       >
-        <span 
-          style={{ 
-            fontSize: '10px',
+        <span
+          style={{
+            fontSize: '11px',
             color: textColor,
-            fontWeight: today ? 600 : 400,
+            fontWeight: today || selected ? 600 : 400,
           }}
         >
           {date.getDate()}
@@ -174,25 +202,32 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
   };
 
   return (
-    <div className="w-full">
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-4">
-        <button 
+    <div
+      className="w-full p-5"
+      style={{
+        backgroundColor: tokens.bgCard,
+        borderRadius: tokens.cardRadius,
+        border: `1px solid ${tokens.border}`,
+      }}
+    >
+      {/* Month Navigation - Team Availability Style */}
+      <div className="flex items-center justify-between mb-5">
+        <button
           onClick={() => setWeekOffset(weekOffset - 1)}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100"
           style={{ color: tokens.textMuted }}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        
-        <span 
-          className="text-sm"
+
+        <span
+          className="text-sm lowercase"
           style={{ color: tokens.textSecondary }}
         >
           {getMonthLabel()}
         </span>
-        
-        <button 
+
+        <button
           onClick={() => setWeekOffset(weekOffset + 1)}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100"
           style={{ color: tokens.textMuted }}
@@ -202,11 +237,11 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
       </div>
 
       {/* Weekday Header */}
-      <div className="grid grid-cols-7 gap-2 mb-3">
+      <div className="grid grid-cols-7 gap-1 mb-3">
         {dayNames.map((day, i) => (
           <div key={i} className="flex justify-center">
-            <span 
-              className="text-[9px] uppercase tracking-wide"
+            <span
+              className="text-[10px] uppercase tracking-wider"
               style={{ color: tokens.textMuted }}
             >
               {day}
@@ -215,19 +250,52 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
         ))}
       </div>
 
-      {/* Calendar Weeks - 4 rows of dots with generous spacing */}
-      <div className="space-y-4">
-        <div className="grid grid-cols-7 gap-2 justify-items-center">
+      {/* Calendar Weeks - Team Availability Style Grid */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-7 gap-1 justify-items-center">
           {week1.map((date, i) => <Dot key={i} date={date} />)}
         </div>
-        <div className="grid grid-cols-7 gap-2 justify-items-center">
+        <div className="grid grid-cols-7 gap-1 justify-items-center">
           {week2.map((date, i) => <Dot key={i} date={date} />)}
         </div>
-        <div className="grid grid-cols-7 gap-2 justify-items-center">
+        <div className="grid grid-cols-7 gap-1 justify-items-center">
           {week3.map((date, i) => <Dot key={i} date={date} />)}
         </div>
-        <div className="grid grid-cols-7 gap-2 justify-items-center">
+        <div className="grid grid-cols-7 gap-1 justify-items-center">
           {week4.map((date, i) => <Dot key={i} date={date} />)}
+        </div>
+      </div>
+
+      {/* Legend - Team Availability Capsule Style */}
+      <div className="flex items-center justify-center gap-3 mt-5">
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 text-xs"
+          style={{
+            backgroundColor: tokens.bgPrimary,
+            borderRadius: tokens.buttonRadius,
+          }}
+        >
+          <div
+            className="w-3.5 h-3.5 rounded-full"
+            style={{ backgroundColor: tokens.calendarSelected }}
+          />
+          <span style={{ color: tokens.textSecondary }}>selected</span>
+        </div>
+        <div
+          className="flex items-center gap-2 px-3 py-1.5 text-xs"
+          style={{
+            backgroundColor: tokens.bgPrimary,
+            borderRadius: tokens.buttonRadius,
+          }}
+        >
+          <div
+            className="w-3.5 h-3.5 rounded-full"
+            style={{
+              border: `2px solid ${tokens.calendarSelected}`,
+              backgroundColor: 'transparent',
+            }}
+          />
+          <span style={{ color: tokens.textSecondary }}>today</span>
         </div>
       </div>
     </div>
@@ -235,62 +303,76 @@ function DotCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelected
 }
 
 // ============ MONTH CALENDAR COMPONENT (Desktop) ============
-function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelectedEnd, leaveColor }) {
+function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelectedEnd, leaveColor, leaveType }) {
   const [monthOffset, setMonthOffset] = useState(0);
-  
+
   const dayNames = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
   const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-  
+
   const getMonthData = () => {
     const today = new Date();
     const targetMonth = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
     const year = targetMonth.getFullYear();
     const month = targetMonth.getMonth();
-    
+
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startPadding = firstDay.getDay();
-    
+
     const days = [];
-    
+
     // Add empty cells for padding
     for (let i = 0; i < startPadding; i++) {
       days.push(null);
     }
-    
+
     // Add actual days
     for (let i = 1; i <= lastDay.getDate(); i++) {
       days.push(new Date(year, month, i));
     }
-    
+
     return { days, month, year };
   };
-  
+
   const { days, month, year } = getMonthData();
-  
-  const isPast = (date) => {
+
+  // Check if date is disabled (past date logic based on leave type)
+  const isDisabled = (date) => {
     if (!date) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return date < today;
+
+    // Future dates are always allowed
+    if (date >= today) return false;
+
+    // Check if this leave type allows past dates
+    if (leaveType?.allowPastDates) {
+      const maxPastDays = leaveType.maxPastDays || 7;
+      const minAllowedDate = new Date(today);
+      minAllowedDate.setDate(today.getDate() - maxPastDays);
+      return date < minAllowedDate;
+    }
+
+    // Default: past dates are disabled
+    return true;
   };
-  
+
   const isSelected = (date) => {
     if (!date || !selectedStart) return false;
     if (selectedStart.toDateString() === date.toDateString()) return true;
     if (selectedEnd && selectedEnd.toDateString() === date.toDateString()) return true;
     return false;
   };
-  
+
   const isInRange = (date) => {
     if (!date || !selectedStart || !selectedEnd) return false;
     const start = selectedStart < selectedEnd ? selectedStart : selectedEnd;
     const end = selectedStart < selectedEnd ? selectedEnd : selectedStart;
     return date > start && date < end;
   };
-  
+
   const handleDateClick = (date) => {
-    if (!date || isPast(date)) return;
+    if (!date || isDisabled(date)) return;
     if (!selectedStart || (selectedStart && selectedEnd)) {
       setSelectedStart(date);
       setSelectedEnd(null);
@@ -309,22 +391,22 @@ function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelect
     <div className="w-full">
       {/* Month Navigation */}
       <div className="flex items-center justify-between mb-5">
-        <button 
+        <button
           onClick={() => setMonthOffset(monthOffset - 1)}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100"
           style={{ color: tokens.textMuted }}
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        
-        <span 
+
+        <span
           className="text-sm"
           style={{ color: tokens.textSecondary }}
         >
           {monthNames[month]} {year}
         </span>
-        
-        <button 
+
+        <button
           onClick={() => setMonthOffset(monthOffset + 1)}
           className="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100"
           style={{ color: tokens.textMuted }}
@@ -337,7 +419,7 @@ function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelect
       <div className="grid grid-cols-7 gap-1 mb-3">
         {dayNames.map((day, i) => (
           <div key={i} className="flex justify-center py-2">
-            <span 
+            <span
               className="text-[11px] font-medium"
               style={{ color: tokens.textMuted }}
             >
@@ -355,47 +437,58 @@ function MonthCalendar({ selectedStart, setSelectedStart, selectedEnd, setSelect
               if (!date) {
                 return <div key={dayIndex} className="w-10 h-10" />;
               }
-              
+
               const selected = isSelected(date);
               const inRange = isInRange(date);
-              const past = isPast(date);
+              const disabled = isDisabled(date);
               const isDateToday = date.toDateString() === new Date().toDateString();
-              
-              // Soft color styling
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isPastDate = date < today;
+
+              // Team Availability style: outlined = available, filled = selected
               let bgColor = 'transparent';
-              let textColor = tokens.calendarText;
-              let border = `1.5px solid ${tokens.calendarEmpty}`;
-              
+              let textColor = tokens.textSecondary;
+              let border = `2px solid ${tokens.textMuted}`;  // Outlined like "Available"
+              let scale = 1;
+
               if (selected) {
                 bgColor = tokens.calendarSelected;
                 textColor = '#fff';
                 border = 'none';
+                scale = 1.05;
               } else if (inRange) {
                 bgColor = tokens.calendarRange;
                 textColor = tokens.textPrimary;
                 border = 'none';
-              } else if (isDateToday && !past) {
+              } else if (isDateToday) {
                 textColor = tokens.calendarSelected;
-                border = `1.5px solid ${tokens.calendarSelected}`;
-              } else if (past) {
+                border = `2px solid ${tokens.calendarSelected}`;
+              } else if (disabled) {
                 textColor = tokens.textMuted;
+                border = `1.5px solid ${tokens.calendarEmpty}`;
+              } else if (isPastDate && !disabled) {
+                // Allowed past dates - emphasized outline
+                textColor = tokens.textSecondary;
+                border = `2px solid ${tokens.textSecondary}`;
               }
-              
+
               return (
                 <button
                   key={dayIndex}
                   type="button"
                   onClick={() => handleDateClick(date)}
-                  disabled={past}
-                  className="w-10 h-10 flex items-center justify-center mx-auto transition-all duration-150 active:scale-90"
+                  disabled={disabled}
+                  className="w-10 h-10 flex items-center justify-center mx-auto transition-all duration-150"
                   style={{
                     borderRadius: '50%',
                     backgroundColor: bgColor,
                     border: border,
                     color: textColor,
-                    cursor: past ? 'default' : 'pointer',
-                    opacity: past ? 0.4 : 1,
-                    fontWeight: isDateToday ? 600 : 400,
+                    cursor: disabled ? 'default' : 'pointer',
+                    opacity: disabled ? 0.35 : 1,
+                    fontWeight: isDateToday || selected ? 600 : 400,
+                    transform: `scale(${scale})`,
                   }}
                 >
                   <span className="text-sm">
@@ -422,7 +515,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
   const currentLeaveType = leaveTypes.find(t => t.id === selectedLeaveType);
 
-  const selectedDays = selectedStart && selectedEnd 
+  const selectedDays = selectedStart && selectedEnd
     ? Math.abs(Math.ceil((selectedEnd - selectedStart) / (1000 * 60 * 60 * 24))) + 1
     : selectedStart ? 1 : 0;
 
@@ -468,18 +561,18 @@ function RequestTimeOffModal({ isOpen, onClose }) {
   // Mobile: Full screen modal
   if (isMobile) {
     return (
-      <div 
+      <div
         className="fixed inset-0 z-50 flex flex-col"
         style={{ backgroundColor: tokens.bgPrimary }}
       >
         {/* Mobile Header */}
-        <div 
+        <div
           className="flex items-center justify-between p-4"
           style={{ backgroundColor: tokens.bgCard, borderBottom: `1px solid ${tokens.border}` }}
         >
           <div className="flex items-center gap-3">
             {(step === 2 || step === 3) && (
-              <button 
+              <button
                 onClick={() => setStep(step - 1)}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
               >
@@ -496,7 +589,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
         </div>
 
         {/* Mobile Content - hide scrollbar */}
-        <div 
+        <div
           className="flex-1 p-4 pb-8"
           style={{
             overflowY: 'auto',
@@ -517,14 +610,14 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                       setStep(2);
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all"
-                    style={{ 
+                    style={{
                       backgroundColor: isSelected ? tokens.bgPrimary : tokens.bgCard,
                       border: `1px solid ${tokens.border}`,
                     }}
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 flex items-center justify-center text-sm font-semibold"
-                      style={{ 
+                      style={{
                         backgroundColor: tokens.bgPrimary,
                         borderRadius: tokens.buttonRadius,
                         color: tokens.textSecondary,
@@ -551,44 +644,32 @@ function RequestTimeOffModal({ isOpen, onClose }) {
           ) : step === 2 ? (
             /* Step 2: Select Dates */
             <div>
-              {/* Selected Leave Type Badge */}
-              <div 
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
-                style={{ backgroundColor: tokens.bgPrimary, border: `1px solid ${tokens.border}` }}
-              >
-                <span 
-                  className="text-xs font-medium"
-                  style={{ color: tokens.textSecondary }}
-                >
-                  {currentLeaveType.label}
-                </span>
-              </div>
-
-              {/* Dot Calendar - Floating without container */}
-              <div className="px-2 mb-4">
+              {/* Dot Calendar - Team Availability Card Style */}
+              <div className="mb-4">
                 <DotCalendar
                   selectedStart={selectedStart}
                   setSelectedStart={setSelectedStart}
                   selectedEnd={selectedEnd}
                   setSelectedEnd={setSelectedEnd}
+                  leaveType={currentLeaveType}
                 />
               </div>
 
-              {/* Selected Range Card */}
-              <div 
+              {/* Selected Range Card - with Leave Type integrated */}
+              <div
                 className="flex items-center justify-between p-4 rounded-2xl"
-                style={{ backgroundColor: tokens.bgCard }}
+                style={{ backgroundColor: tokens.bgCard, border: `1px solid ${tokens.border}` }}
               >
                 <div>
-                  <p 
+                  <p
                     className="text-[10px] uppercase tracking-wider mb-1"
                     style={{ color: tokens.textSecondary }}
                   >
-                    SELECTED
+                    {currentLeaveType.label}
                   </p>
                   <p className="text-sm font-medium">
                     {selectedStart ? (
-                      selectedEnd 
+                      selectedEnd
                         ? `${formatDateShort(selectedStart)} → ${formatDateShort(selectedEnd)}`
                         : formatDateShort(selectedStart)
                     ) : (
@@ -597,7 +678,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                   </p>
                 </div>
                 {selectedDays > 0 && (
-                  <div 
+                  <div
                     className="px-3 py-1.5 rounded-full text-white text-sm font-semibold"
                     style={{ backgroundColor: tokens.calendarSelected }}
                   >
@@ -608,7 +689,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
               {/* Exceeds Balance Warning */}
               {exceedsBalance && (
-                <p 
+                <p
                   className="text-center text-xs mt-4"
                   style={{ color: tokens.textSecondary }}
                 >
@@ -619,11 +700,11 @@ function RequestTimeOffModal({ isOpen, onClose }) {
               {/* Continue Button - Centered pill style */}
               {selectedDays > 0 && (
                 <div className="flex justify-center mt-6">
-                  <button 
+                  <button
                     onClick={() => setStep(3)}
                     disabled={exceedsBalance}
                     className="px-12 py-2.5 rounded-full font-medium text-sm text-white transition-all active:scale-95 disabled:opacity-50"
-                    style={{ 
+                    style={{
                       backgroundColor: exceedsBalance ? tokens.textMuted : tokens.accent,
                     }}
                   >
@@ -636,13 +717,13 @@ function RequestTimeOffModal({ isOpen, onClose }) {
             /* Step 3: Add Note */
             <div className="flex flex-col items-center pt-8">
               <div className="text-center mb-6">
-                <h4 
+                <h4
                   className="text-xl font-bold mb-2"
                   style={{ color: tokens.textPrimary }}
                 >
                   add a note.
                 </h4>
-                <p 
+                <p
                   className="text-xs"
                   style={{ color: tokens.textSecondary }}
                 >
@@ -650,13 +731,13 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                   this is optional.
                 </p>
               </div>
-              
+
               {/* Summary Badge */}
-              <div 
+              <div
                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6"
                 style={{ backgroundColor: tokens.bgCard, border: `1px solid ${tokens.border}` }}
               >
-                <span 
+                <span
                   className="text-xs font-medium"
                   style={{ color: tokens.textSecondary }}
                 >
@@ -686,7 +767,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
               {/* Submit Button - Centered pill style */}
               <div className="flex justify-center mt-6">
-                <button 
+                <button
                   onClick={handleSubmit}
                   className="px-12 py-2.5 rounded-full font-medium text-sm text-white transition-all active:scale-95"
                   style={{ backgroundColor: tokens.accent }}
@@ -705,16 +786,16 @@ function RequestTimeOffModal({ isOpen, onClose }) {
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 z-40"
         style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div 
+      <div
         className="fixed z-50 w-[420px]"
-        style={{ 
+        style={{
           backgroundColor: tokens.bgCard,
           borderRadius: '20px',
           top: '50%',
@@ -733,7 +814,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                 <X className="w-4 h-4" style={{ color: tokens.textSecondary }} />
               </button>
             </div>
-            
+
             {/* Leave Type Options - Team Overview Style */}
             <div className="p-5 space-y-2">
               {leaveTypes.map((type) => {
@@ -746,14 +827,14 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                       setStep(2);
                     }}
                     className="w-full flex items-center gap-4 p-4 rounded-2xl transition-all hover:bg-gray-50"
-                    style={{ 
+                    style={{
                       backgroundColor: isSelected ? tokens.bgPrimary : tokens.bgCard,
                       border: `1px solid ${tokens.border}`,
                     }}
                   >
-                    <div 
+                    <div
                       className="w-10 h-10 flex items-center justify-center text-sm font-semibold"
-                      style={{ 
+                      style={{
                         backgroundColor: tokens.bgPrimary,
                         borderRadius: tokens.buttonRadius,
                         color: tokens.textSecondary,
@@ -784,7 +865,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between p-5" style={{ borderBottom: `1px solid ${tokens.border}` }}>
               <div className="flex items-center gap-3">
-                <button 
+                <button
                   onClick={() => setStep(1)}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
                 >
@@ -799,42 +880,30 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
             {/* Content */}
             <div className="p-5">
-              {/* Selected Leave Type Badge */}
-              <div 
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
-                style={{ backgroundColor: tokens.bgPrimary, border: `1px solid ${tokens.border}` }}
-              >
-                <span 
-                  className="text-xs font-medium"
-                  style={{ color: tokens.textSecondary }}
-                >
-                  {currentLeaveType.label}
-                </span>
-              </div>
-
-              {/* Dot Calendar */}
+              {/* Dot Calendar - Team Availability Card Style */}
               <DotCalendar
                 selectedStart={selectedStart}
                 setSelectedStart={setSelectedStart}
                 selectedEnd={selectedEnd}
                 setSelectedEnd={setSelectedEnd}
+                leaveType={currentLeaveType}
               />
 
-              {/* Selected Range Card */}
-              <div 
+              {/* Selected Range Summary - with Leave Type integrated */}
+              <div
                 className="flex items-center justify-between p-4 rounded-2xl mt-5"
                 style={{ backgroundColor: tokens.bgPrimary }}
               >
                 <div>
-                  <p 
+                  <p
                     className="text-[10px] uppercase tracking-wider mb-1"
                     style={{ color: tokens.textSecondary }}
                   >
-                    SELECTED
+                    {currentLeaveType.label}
                   </p>
                   <p className="text-sm font-medium">
                     {selectedStart ? (
-                      selectedEnd 
+                      selectedEnd
                         ? `${formatDateShort(selectedStart)} → ${formatDateShort(selectedEnd)}`
                         : formatDateShort(selectedStart)
                     ) : (
@@ -843,7 +912,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
                   </p>
                 </div>
                 {selectedDays > 0 && (
-                  <div 
+                  <div
                     className="px-3 py-1.5 rounded-full text-white text-sm font-semibold"
                     style={{ backgroundColor: tokens.calendarSelected }}
                   >
@@ -854,7 +923,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
               {/* Exceeds Balance Warning */}
               {exceedsBalance && (
-                <p 
+                <p
                   className="text-center text-xs mt-4"
                   style={{ color: tokens.textSecondary }}
                 >
@@ -865,11 +934,11 @@ function RequestTimeOffModal({ isOpen, onClose }) {
               {/* Continue Button - Centered pill style */}
               {selectedDays > 0 && (
                 <div className="flex justify-center mt-6">
-                  <button 
+                  <button
                     onClick={() => setStep(3)}
                     disabled={exceedsBalance}
                     className="px-12 py-2.5 rounded-full font-medium text-sm text-white transition-all active:scale-95 disabled:opacity-50"
-                    style={{ 
+                    style={{
                       backgroundColor: exceedsBalance ? tokens.textMuted : tokens.accent,
                     }}
                   >
@@ -885,7 +954,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
             {/* Header */}
             <div className="flex items-center justify-between p-5" style={{ borderBottom: `1px solid ${tokens.border}` }}>
               <div className="flex items-center gap-3">
-                <button 
+                <button
                   onClick={() => setStep(2)}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
                 >
@@ -901,23 +970,23 @@ function RequestTimeOffModal({ isOpen, onClose }) {
             {/* Content */}
             <div className="p-5">
               <div className="text-center mb-5">
-                <p 
+                <p
                   className="text-xs"
                   style={{ color: tokens.textSecondary }}
                 >
                   Let your team know any details—this is optional.
                 </p>
               </div>
-              
+
               {/* Summary Badge */}
-              <div 
+              <div
                 className="flex justify-center mb-5"
               >
-                <div 
+                <div
                   className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
                   style={{ backgroundColor: tokens.bgPrimary, border: `1px solid ${tokens.border}` }}
                 >
-                  <span 
+                  <span
                     className="text-xs font-medium"
                     style={{ color: tokens.textSecondary }}
                   >
@@ -948,7 +1017,7 @@ function RequestTimeOffModal({ isOpen, onClose }) {
 
               {/* Submit Button - Centered pill style */}
               <div className="flex justify-center mt-6">
-                <button 
+                <button
                   onClick={handleSubmit}
                   className="px-12 py-2.5 rounded-full font-medium text-sm text-white transition-all active:scale-95"
                   style={{ backgroundColor: tokens.accent }}
@@ -972,7 +1041,7 @@ const RIGHT_PANEL_WIDTH = 340;
 // ============ RESPONSIVE HOOK ============
 function useResponsive() {
   const [screen, setScreen] = useState('desktop');
-  
+
   React.useEffect(() => {
     const checkScreen = () => {
       const width = window.innerWidth;
@@ -980,12 +1049,12 @@ function useResponsive() {
       else if (width < 1024) setScreen('tablet');
       else setScreen('desktop');
     };
-    
+
     checkScreen();
     window.addEventListener('resize', checkScreen);
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
-  
+
   return {
     isMobile: screen === 'mobile',
     isTablet: screen === 'tablet',
@@ -1040,9 +1109,9 @@ export default function LeaveManagementDashboard() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen text-[13px]"
-      style={{ 
+      style={{
         backgroundColor: tokens.bgPrimary,
         color: tokens.textPrimary,
         fontFamily: "'Inter', 'SF Pro Rounded', -apple-system, sans-serif",
@@ -1050,7 +1119,7 @@ export default function LeaveManagementDashboard() {
     >
       {/* Mobile/Tablet Sidebar Overlay */}
       {!isDesktop && sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-30 backdrop-blur-sm"
           style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
           onClick={() => setSidebarOpen(false)}
@@ -1058,9 +1127,9 @@ export default function LeaveManagementDashboard() {
       )}
 
       {/* HEADER */}
-      <header 
+      <header
         className="sticky top-0 z-20 flex items-center px-4 md:px-6"
-        style={{ 
+        style={{
           height: HEADER_HEIGHT,
           backgroundColor: tokens.bgCard,
           borderBottom: `1px solid ${tokens.border}`,
@@ -1070,7 +1139,7 @@ export default function LeaveManagementDashboard() {
           {/* Left: Logo + Menu Toggle */}
           <div className="flex items-center gap-3">
             {!isDesktop && (
-              <button 
+              <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
               >
@@ -1082,7 +1151,7 @@ export default function LeaveManagementDashboard() {
               </button>
             )}
             <div className="flex items-center gap-2">
-              <div 
+              <div
                 className="w-8 h-8 flex items-center justify-center text-white text-xs font-bold"
                 style={{ backgroundColor: tokens.accent, borderRadius: '8px' }}
               >
@@ -1094,19 +1163,19 @@ export default function LeaveManagementDashboard() {
               </div>
             </div>
           </div>
-          
+
           {/* Center: Greeting (desktop only) */}
           {isDesktop && (
             <h2 className="text-lg lowercase leading-none" style={{ fontWeight: tokens.bold }}>{getGreeting()}</h2>
           )}
-          
+
           {/* Right: Actions */}
           <div className="flex items-center gap-2 md:gap-3">
             {/* Search - hidden on mobile */}
             {!isMobile && (
               <div className="relative flex items-center">
-                <Search 
-                  className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" 
+                <Search
+                  className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2"
                   style={{ color: tokens.textSecondary }}
                   strokeWidth={1.5}
                 />
@@ -1114,7 +1183,7 @@ export default function LeaveManagementDashboard() {
                   type="text"
                   placeholder="search..."
                   className="w-32 md:w-44 pl-8 pr-3 py-2 text-xs lowercase placeholder:lowercase"
-                  style={{ 
+                  style={{
                     backgroundColor: tokens.bgPrimary,
                     border: `1px solid ${tokens.border}`,
                     borderRadius: tokens.inputRadius,
@@ -1122,21 +1191,21 @@ export default function LeaveManagementDashboard() {
                 />
               </div>
             )}
-            
+
             {/* Bell */}
-            <button 
+            <button
               className="w-9 h-9 flex items-center justify-center relative transition-colors hover:bg-gray-50"
               style={{ backgroundColor: tokens.bgPrimary, borderRadius: tokens.inputRadius }}
             >
               <Bell className="w-4 h-4" style={{ color: tokens.textSecondary }} strokeWidth={1.5} />
-              <span 
+              <span
                 className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
                 style={{ backgroundColor: tokens.accent }}
               />
             </button>
 
             {/* New Request Button */}
-            <button 
+            <button
               onClick={() => setIsRequestModalOpen(true)}
               className="flex items-center gap-1.5 px-3 md:px-4 py-2 text-white text-xs font-medium lowercase transition-all active:scale-[0.98]"
               style={{ backgroundColor: tokens.accent, borderRadius: tokens.buttonRadius }}
@@ -1149,18 +1218,18 @@ export default function LeaveManagementDashboard() {
       </header>
 
       {/* MAIN LAYOUT */}
-      <div 
+      <div
         className="flex"
         style={{ minHeight: `calc(100vh - ${HEADER_HEIGHT}px)` }}
       >
         {/* Sidebar */}
-        <aside 
+        <aside
           className={`
             ${isDesktop ? 'relative' : 'fixed left-0 top-0 z-40 h-full pt-[72px]'}
             ${!isDesktop && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'}
             transition-transform duration-300 flex flex-col
           `}
-          style={{ 
+          style={{
             width: SIDEBAR_WIDTH,
             backgroundColor: tokens.bgCard,
             borderRight: `1px solid ${tokens.border}`,
@@ -1187,7 +1256,7 @@ export default function LeaveManagementDashboard() {
                     <item.icon className="w-4 h-4" strokeWidth={1.5} />
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span 
+                      <span
                         className="ml-auto text-[10px] font-bold px-1.5 py-0.5"
                         style={{
                           backgroundColor: selectedNav === item.id ? tokens.bgCard : tokens.accent,
@@ -1207,7 +1276,7 @@ export default function LeaveManagementDashboard() {
           {/* User */}
           <div className="p-3 mt-auto" style={{ borderTop: `1px solid ${tokens.border}` }}>
             <div className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
-              <div 
+              <div
                 className="w-8 h-8 flex items-center justify-center"
                 style={{ backgroundColor: tokens.bgPrimary, borderRadius: tokens.buttonRadius }}
               >
@@ -1228,13 +1297,13 @@ export default function LeaveManagementDashboard() {
           {/* Week Calendar Strip - Stoic Style */}
           <div className="py-3 px-2">
             <div className="flex items-center gap-2">
-              <button 
+              <button
                 className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full transition-colors hover:bg-white/50"
                 style={{ color: tokens.textSecondary }}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              
+
               <div className="flex-1 flex items-center justify-between">
                 {weekDays.map((day, i) => (
                   <button
@@ -1245,13 +1314,13 @@ export default function LeaveManagementDashboard() {
                       backgroundColor: day.selected ? '#8E8E93' : 'transparent',
                     }}
                   >
-                    <span 
+                    <span
                       className="text-[10px] font-medium uppercase"
                       style={{ color: day.selected ? 'rgba(255,255,255,0.6)' : '#858585' }}
                     >
                       {day.day.charAt(0)}
                     </span>
-                    <span 
+                    <span
                       className="text-sm font-semibold"
                       style={{ color: day.selected ? '#FFFFFF' : '#B0B0B0' }}
                     >
@@ -1260,17 +1329,17 @@ export default function LeaveManagementDashboard() {
                   </button>
                 ))}
               </div>
-              
-              <button 
+
+              <button
                 className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-full transition-colors hover:bg-white/50"
                 style={{ color: tokens.textSecondary }}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="text-center mt-2">
-              <span 
+              <span
                 className="text-xs lowercase"
                 style={{ color: tokens.textSecondary }}
               >
@@ -1280,53 +1349,53 @@ export default function LeaveManagementDashboard() {
           </div>
 
           {/* Team Availability */}
-          <div 
+          <div
             className="p-5"
-            style={{ 
+            style={{
               backgroundColor: tokens.bgCard,
               borderRadius: tokens.cardRadius,
               border: `1px solid ${tokens.border}`,
             }}
           >
-            <h3 
+            <h3
               className="text-center text-sm lowercase mb-4"
               style={{ color: tokens.textSecondary }}
             >
               team availability.
             </h3>
-            
+
             {/* Legend - Capsule Buttons */}
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div 
+              <div
                 className="flex items-center gap-2 px-4 py-2.5 text-sm"
-                style={{ 
+                style={{
                   backgroundColor: tokens.bgPrimary,
                   borderRadius: tokens.buttonRadius,
                 }}
               >
-                <div 
+                <div
                   className="w-4 h-4 rounded-full"
-                  style={{ 
+                  style={{
                     border: `2px solid #C7C7CC`,
                   }}
                 />
                 <span>6 Available</span>
               </div>
-              <div 
+              <div
                 className="flex items-center gap-2 px-4 py-2.5 text-sm"
-                style={{ 
+                style={{
                   backgroundColor: tokens.bgPrimary,
                   borderRadius: tokens.buttonRadius,
                 }}
               >
-                <div 
+                <div
                   className="w-4 h-4 rounded-full"
                   style={{ backgroundColor: '#8E8E93' }}
                 />
                 <span>2 On Leave</span>
               </div>
             </div>
-            
+
             {/* Stats Grid */}
             <div className="flex gap-3">
               {[
@@ -1335,18 +1404,18 @@ export default function LeaveManagementDashboard() {
                 { value: 2, label: 'pending' },
                 { value: 8, label: 'this week' },
               ].map((stat, i) => (
-                <div 
+                <div
                   key={i}
                   className="flex-1 text-center p-4 rounded-2xl"
                   style={{ backgroundColor: tokens.bgPrimary }}
                 >
-                  <p 
+                  <p
                     className="text-2xl font-semibold mb-1"
                     style={{ color: tokens.valueText }}
                   >
                     {stat.value}
                   </p>
-                  <p 
+                  <p
                     className="text-[10px] lowercase"
                     style={{ color: tokens.textSecondary }}
                   >
@@ -1358,9 +1427,9 @@ export default function LeaveManagementDashboard() {
           </div>
 
           {/* Team List */}
-          <div 
+          <div
             className="p-5"
-            style={{ 
+            style={{
               backgroundColor: tokens.bgCard,
               borderRadius: tokens.cardRadius,
               border: `1px solid ${tokens.border}`,
@@ -1370,19 +1439,19 @@ export default function LeaveManagementDashboard() {
               <h3 className="text-sm font-semibold lowercase">team overview</h3>
               <button className="text-xs lowercase" style={{ color: tokens.textSecondary }}>view all</button>
             </div>
-            
+
             <div className="space-y-1">
               {teamMembers.map((member, i) => (
-                <div 
+                <div
                   key={i}
                   className="flex items-center gap-3 p-3 rounded-xl transition-colors"
-                  style={{ 
+                  style={{
                     backgroundColor: member.status === 'leave' ? tokens.bgPrimary : 'transparent',
                   }}
                 >
-                  <div 
+                  <div
                     className="w-8 h-8 flex items-center justify-center text-xs font-semibold"
-                    style={{ 
+                    style={{
                       backgroundColor: member.status === 'leave' ? '#E5E5EA' : tokens.bgPrimary,
                       borderRadius: tokens.buttonRadius,
                       color: tokens.textSecondary,
@@ -1404,7 +1473,7 @@ export default function LeaveManagementDashboard() {
                       <p className="text-[10px]" style={{ color: tokens.textSecondary }}>{member.daysLeft} days left</p>
                     )}
                   </div>
-                  <div 
+                  <div
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: member.status === 'leave' ? tokens.textMuted : tokens.textSecondary }}
                   />
@@ -1415,9 +1484,9 @@ export default function LeaveManagementDashboard() {
 
           {/* Pending Approvals - Mobile Only */}
           {isMobile && (
-            <div 
+            <div
               className="p-5"
-              style={{ 
+              style={{
                 backgroundColor: tokens.bgCard,
                 borderRadius: tokens.cardRadius,
                 border: `1px solid ${tokens.border}`,
@@ -1427,9 +1496,9 @@ export default function LeaveManagementDashboard() {
                 <h3 className="text-[10px] uppercase tracking-wider" style={{ color: tokens.textSecondary }}>
                   Pending
                 </h3>
-                <span 
+                <span
                   className="text-[10px] font-bold px-1.5 py-0.5 text-white"
-                  style={{ 
+                  style={{
                     backgroundColor: tokens.accent,
                     borderRadius: tokens.buttonRadius,
                   }}
@@ -1437,21 +1506,21 @@ export default function LeaveManagementDashboard() {
                   2
                 </span>
               </div>
-              
+
               <div className="space-y-3">
                 {pendingRequests.map((req, i) => (
-                  <div 
+                  <div
                     key={i}
                     className="p-3"
-                    style={{ 
+                    style={{
                       backgroundColor: tokens.bgPrimary,
                       borderRadius: '16px',
                     }}
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <div 
+                      <div
                         className="w-7 h-7 flex items-center justify-center text-[10px] font-semibold"
-                        style={{ 
+                        style={{
                           backgroundColor: '#E5E5EA',
                           borderRadius: tokens.buttonRadius,
                           color: tokens.textSecondary,
@@ -1467,18 +1536,18 @@ export default function LeaveManagementDashboard() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         className="flex-1 py-1.5 text-[10px] font-medium text-white lowercase"
-                        style={{ 
+                        style={{
                           backgroundColor: tokens.accent,
                           borderRadius: '10px',
                         }}
                       >
                         approve
                       </button>
-                      <button 
+                      <button
                         className="flex-1 py-1.5 text-[10px] font-medium lowercase"
-                        style={{ 
+                        style={{
                           backgroundColor: tokens.bgCard,
                           border: `1px solid ${tokens.border}`,
                           borderRadius: '10px',
@@ -1497,24 +1566,24 @@ export default function LeaveManagementDashboard() {
 
         {/* Right Panel - Hidden on mobile, shown on tablet+ */}
         {!isMobile && (
-          <aside 
+          <aside
             className="overflow-y-auto p-4 md:p-6 md:pl-0"
-            style={{ 
+            style={{
               width: isTablet ? 280 : RIGHT_PANEL_WIDTH,
               flexShrink: 0,
             }}
           >
         <div className="space-y-5">
           {/* Balance - Highlights Style */}
-          <div 
+          <div
             className="p-5"
-            style={{ 
+            style={{
               backgroundColor: tokens.bgCard,
               borderRadius: tokens.cardRadius,
               border: `1px solid ${tokens.border}`,
             }}
           >
-            <h3 
+            <h3
               className="text-[10px] uppercase tracking-wider mb-4"
               style={{ color: tokens.textSecondary }}
             >
@@ -1532,13 +1601,13 @@ export default function LeaveManagementDashboard() {
                 return (
                   <div key={i}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span 
+                      <span
                         className="text-xs"
                         style={{ color: tokens.textPrimary }}
                       >
                         {item.label}
                       </span>
-                      <span 
+                      <span
                         className="text-xs font-medium"
                         style={{ color: tokens.valueText }}
                       >
@@ -1546,16 +1615,16 @@ export default function LeaveManagementDashboard() {
                       </span>
                     </div>
                     {/* Progress Bar - Thin & Delicate */}
-                    <div 
+                    <div
                       className="w-full rounded-full overflow-hidden"
-                      style={{ 
+                      style={{
                         height: '1px',
                         backgroundColor: '#E5E5EA',
                       }}
                     >
-                      <div 
+                      <div
                         className="h-full rounded-full"
-                        style={{ 
+                        style={{
                           width: `${percentage}%`,
                           backgroundColor: '#B8B8BC',
                         }}
@@ -1568,9 +1637,9 @@ export default function LeaveManagementDashboard() {
           </div>
 
           {/* Pending */}
-          <div 
+          <div
             className="p-5"
-            style={{ 
+            style={{
               backgroundColor: tokens.bgCard,
               borderRadius: tokens.cardRadius,
               border: `1px solid ${tokens.border}`,
@@ -1580,9 +1649,9 @@ export default function LeaveManagementDashboard() {
               <h3 className="text-[10px] uppercase tracking-wider" style={{ color: tokens.textSecondary }}>
                 Pending
               </h3>
-              <span 
+              <span
                 className="text-[10px] font-bold px-1.5 py-0.5 text-white"
-                style={{ 
+                style={{
                   backgroundColor: tokens.accent,
                   borderRadius: tokens.buttonRadius,
                 }}
@@ -1590,21 +1659,21 @@ export default function LeaveManagementDashboard() {
                 2
               </span>
             </div>
-            
+
             <div className="space-y-3">
               {pendingRequests.map((req, i) => (
-                <div 
+                <div
                   key={i}
                   className="p-3"
-                  style={{ 
+                  style={{
                     backgroundColor: tokens.bgPrimary,
                     borderRadius: '16px',
                   }}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div 
+                    <div
                       className="w-7 h-7 flex items-center justify-center text-[10px] font-semibold"
-                      style={{ 
+                      style={{
                         backgroundColor: '#E5E5EA',
                         borderRadius: tokens.buttonRadius,
                         color: tokens.textSecondary,
@@ -1620,18 +1689,18 @@ export default function LeaveManagementDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       className="flex-1 py-1.5 text-[10px] font-medium text-white lowercase"
-                      style={{ 
+                      style={{
                         backgroundColor: tokens.accent,
                         borderRadius: '10px',
                       }}
                     >
                       approve
                     </button>
-                    <button 
+                    <button
                       className="flex-1 py-1.5 text-[10px] font-medium lowercase"
-                      style={{ 
+                      style={{
                         backgroundColor: tokens.bgCard,
                         border: `1px solid ${tokens.border}`,
                         borderRadius: '10px',
@@ -1646,9 +1715,9 @@ export default function LeaveManagementDashboard() {
           </div>
 
           {/* Quote */}
-          <div 
+          <div
             className="p-5 text-white"
-            style={{ 
+            style={{
               backgroundColor: tokens.accent,
               borderRadius: tokens.cardRadius,
             }}
@@ -1657,10 +1726,10 @@ export default function LeaveManagementDashboard() {
               "When it comes to luck, you make your own."
             </p>
             <p className="text-[10px] opacity-60">Bruce Springsteen</p>
-            
+
             <div className="flex gap-2 mt-4">
               {[Star, Share2].map((Icon, i) => (
-                <button 
+                <button
                   key={i}
                   className="w-7 h-7 flex items-center justify-center rounded-full"
                   style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}
@@ -1676,9 +1745,9 @@ export default function LeaveManagementDashboard() {
       </div>
 
       {/* Request Time Off Modal */}
-      <RequestTimeOffModal 
-        isOpen={isRequestModalOpen} 
-        onClose={() => setIsRequestModalOpen(false)} 
+      <RequestTimeOffModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
       />
     </div>
   );
