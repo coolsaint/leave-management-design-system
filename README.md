@@ -2,7 +2,7 @@
 
 A comprehensive design system and prototype for a modern, mobile-first leave management application built with React. Follows **Emotional Minimalism** design principles inspired by Apple iOS and Stoic app aesthetics.
 
-![Design System](https://img.shields.io/badge/Design_System-v1.6-blue)
+![Design System](https://img.shields.io/badge/Design_System-v2.1-blue)
 ![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178C6?logo=typescript)
 ![Tailwind](https://img.shields.io/badge/Tailwind-CSS-06B6D4?logo=tailwindcss)
@@ -14,12 +14,17 @@ A comprehensive design system and prototype for a modern, mobile-first leave man
 ```
 leave-management-design-system/
 ├── README.md                           # This file
+├── index.html                          # Vite entry point
+├── package.json                        # Dependencies and scripts
+├── vite.config.ts                      # Vite configuration
+├── tsconfig.json                       # TypeScript configuration
 ├── docs/
-│   ├── DESIGN_SPEC.md                  # Complete design specification (v1.6)
+│   ├── DESIGN_SPEC.md                  # Complete design specification
 │   ├── CLAUDE_CODE_PROMPT.md           # AI agent prompt for development
 │   └── CONVENTIONS.md                  # Code conventions and patterns
 ├── src/
-│   └── leave-modal.tsx                 # Working React prototype
+│   ├── main.tsx                        # React entry point
+│   └── leave-modal.tsx                 # Working React prototype (v2.1)
 ├── policy/
 │   └── shajgoj-leave-policy.md         # Leave policy reference (Shajgoj Ltd)
 └── assets/
@@ -96,22 +101,24 @@ const tokens = {
 3. **Add Note** — Optional reason textarea
 
 ### Leave Types (Shajgoj Policy)
-| Type | Days/Year | Key Rule |
-|------|-----------|----------|
-| Sick | 14 | Doctor cert for 3+ days |
-| Casual | 10 | Max 3 days at a time |
-| Paternity | 14 | 7 before + 7 after delivery |
-| Bereavement | 3 | Immediate post-death only |
-| Marriage | 5 | Once in employment |
+| Type | Days/Year | Past Dates | Key Rule |
+|------|-----------|------------|----------|
+| Sick | 14 | ✅ 7 days | Doctor cert for 3+ days |
+| Casual | 10 | ❌ | Max 3 days at a time |
+| Paternity | 14 | ✅ 90 days | 7 before + 7 after delivery |
+| Bereavement | 3 | ✅ 7 days | Immediate post-death only |
+| Marriage | 5 | ❌ | Once in employment |
 
 ---
 
 ## 🚀 Getting Started
 
-### View the Prototype
-1. Copy `src/leave-modal.tsx` into a React project
-2. Install dependencies: `lucide-react`
-3. Import and render the component
+### Run Locally
+```bash
+npm install
+npm run dev
+```
+Open http://localhost:5173 in your browser.
 
 ### Use with Claude Code
 1. Read `docs/CLAUDE_CODE_PROMPT.md` for the AI agent prompt
@@ -131,6 +138,11 @@ const tokens = {
 | 1.4 | Soft calendar colors, Shajgoj policy |
 | 1.5 | Balance card with progress bars |
 | 1.6 | 1px progress bars, uppercase header consistency |
+| 1.7 | Bug fixes (undefined variable), past date selection logic by leave type |
+| 1.8 | DotCalendar redesign with card styling and legend capsules |
+| 1.9 | Leave type badge integrated into summary card |
+| 2.0 | Border refinement (2px → 1.5px) |
+| 2.1 | Unified 1px border system throughout calendar |
 
 ---
 
